@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Axios 练习2：封装与拦截器</title>
+  <style>
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      padding: 20px;
+      max-width: 760px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1 { font-size: 1.4rem; }
+    button {
+      margin: 6px 6px 6px 0;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+    #log {
+      background: #1e1e1e;
+      color: #dcdcdc;
+      padding: 14px;
+      min-height: 240px;
+      white-space: pre-wrap;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+    .hint { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Axios 练习2：迷你封装 + 拦截器</h1>
+  <p class="hint">
+    用法：用 Chrome 直接打开本文件，或在本目录执行 <code>npx serve .</code> 后访问。
+    先点「设置 token」，再试下面按钮。也可点「运行全部测试」自动验证。
+  </p>
+
+  <div>
+    <button type="button" onclick="setToken()">设置 token（模拟已登录）</button>
+    <button type="button" onclick="clearToken()">清除 token（模拟未登录）</button>
+    <button type="button" onclick="runAllTests()">运行全部测试</button>
+  </div>
+  <hr />
+  <div>
+    <button type="button" onclick="callList()">GET /memos（应成功）</button>
+    <button type="button" onclick="callSecret()">GET /secret（无 token 应失败）</button>
+    <button type="button" onclick="callBad()">GET /bad（业务 code 非 0 应失败）</button>
+  </div>
+
+  <pre id="log"></pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.8/dist/axios.min.js"></script>
+  <script>
+    // =========================================================================
+    // 与 run-tests.js 相同的逻辑（浏览器版）
+    // =========================================================================
+
+    let fakeToken = null
+
+    function fakeServer(method, url, config) {
+      config = config || {}
+      var auth = (config.headers && config.headers.Authorization) || ''
+      var hasToken = auth.indexOf('Bearer ') === 0
+
+      if (url === '/secret' && !hasToken) {
+        return { code: 401, message: '未登录', data: null }
+      }
+      if (url === '/secret' && hasToken) {
+        return { code: 0, message: 'ok', data: '机密数据' }
+      }
+      if (url === '/bad') {
+        return { code: 500, message: '服务器开小差了', data: null }
+      }
+      if (method === 'get' && url === '/memos') {
+        return {
+          code: 0,
+          message: 'ok',
+          data: {
+            items: [
+              { id: 1, title: '买牛奶' },
+              { id: 2, title: '学 Axios' },
+            ],
+            total: 2,
+          },
+        }
+      }
+      return { code: 404, message: '接口不存在', data: null }
+    }
+
+    var request = axios.create({ baseURL: '/api', timeout: 5000 })
+
+    request.interceptors.request.use(function (config) {
+      if (fakeToken) {
+        config.headers.Authorization = 'Bearer ' + fakeToken
+      }
+      var tokenStatus = fakeToken ? '已带 token' : '未带 token'
+      log('[请求拦截] ' + config.method.toUpperCase() + ' ' + config.baseURL + config.url + '，' + tokenStatus)
+
+      config.adapter = function (cfg) {
+        return Promise.resolve({
+          data: fakeServer(cfg.method, cfg.url, cfg),
+          status: 200,
+          config: cfg,
+          headers: {},
+        })
+      }
+      return config
+    })
+
+    request.interceptors.response.use(
+      function (response) {
+        var res = response.data
+        if (res.code !== 0) {
+          log('[响应拦截] 失败 code=' + res.code + '，message=' + res.message)
+          return Promise.reject(new Error(res.message))
+        }
+        log('[响应拦截] 成功，data=' + JSON.stringify(res.data))
+        return res
+      },
+      function (error) {
+        log('[响应拦截] 网络异常：' + error.message)
+        return Promise.reject(error)
+      }
+    )
+
+    function listMemos() {
+      return request.get('/memos')
+    }
+    function getSecret() {
+      return request.get('/secret')
+    }
+    function getBad() {
+      return request.get('/bad')
+    }
+
+    function log(msg) {
+      var el = document.getElementById('log')
+      el.textContent += msg + '\n'
+    }
+
+    function clearLog() {
+      document.getElementById('log').textContent = ''
+    }
+
+    function setToken() {
+      fakeToken = 'abc123'
+      log('--- 已设置 token ---')
+    }
+
+    function clearToken() {
+      fakeToken = null
+      log('--- 已清除 token ---')
+    }
+
+    async function callList() {
+      log('')
+      log('>>> 手动测试：GET /memos')
+      try {
+        var res = await listMemos()
+        log('[页面] 共 ' + res.data.total + ' 条，第一条标题=' + res.data.items[0].title)
+      } catch (e) {
+        log('[页面 catch] ' + e.message)
+      }
+    }
+
+    async function callSecret() {
+      log('')
+      log('>>> 手动测试：GET /secret')
+      try {
+        var res = await getSecret()
+        log('[页面] 拿到：' + res.data)
+      } catch (e) {
+        log('[页面 catch] ' + e.message)
+      }
+    }
+
+    async function callBad() {
+      log('')
+      log('>>> 手动测试：GET /bad')
+      try {
+        await getBad()
+        log('[页面] 不应走到这里')
+      } catch (e) {
+        log('[页面 catch] ' + e.message)
+      }
+    }
+
+    async function runAllTests() {
+      clearLog()
+      log('========================================')
+      log('  自动测试开始')
+      log('========================================')
+
+      var passed = 0
+      var failed = 0
+
+      async function caseTest(name, fn, expectSuccess) {
+        log('')
+        log('--- 用例：' + name + ' ---')
+        try {
+          var res = await fn()
+          if (expectSuccess) {
+            log('[OK] ' + name)
+            if (res && res.data !== undefined) {
+              log('     data=' + JSON.stringify(res.data))
+            }
+            passed++
+          } else {
+            log('[FAIL] ' + name + '：预期应失败，但成功了')
+            failed++
+          }
+        } catch (e) {
+          if (!expectSuccess) {
+            log('[OK] ' + name + '（按预期失败）')
+            log('     捕获：' + e.message)
+            passed++
+          } else {
+            log('[FAIL] ' + name + '：' + e.message)
+            failed++
+          }
+        }
+      }
+
+      clearToken()
+
+      await caseTest('1. GET /memos（无需登录）', function () {
+        return listMemos().then(function (res) {
+          if (res.data.total !== 2) throw new Error('total 应为 2')
+          return res
+        })
+      }, true)
+
+      await caseTest('2. GET /secret（未登录）', function () {
+        return getSecret()
+      }, false)
+
+      setToken('abc123')
+
+      await caseTest('3. GET /secret（已登录）', function () {
+        return getSecret().then(function (res) {
+          if (res.data !== '机密数据') throw new Error('data 不对')
+          return res
+        })
+      }, true)
+
+      await caseTest('4. GET /bad（业务失败）', function () {
+        return getBad()
+      }, false)
+
+      log('')
+      log('========================================')
+      log('  结果：' + passed + ' 通过，' + failed + ' 失败')
+      log('========================================')
+    }
+  </script>
+</body>
+</html>

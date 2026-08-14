@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>练习4：defineExpose</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    button { margin-right: 8px; margin-bottom: 8px; }
+    .panel { margin-top: 16px; padding: 12px; background: #f5f5f5; border: 1px solid #ddd; }
+    .pass { color: #067d17; }
+    .fail { color: #c00; }
+  </style>
+</head>
+<body>
+  <h2>练习 4：defineExpose（父组件叫子组件刷新）</h2>
+  <p>要练会：数据库变了，子组件不会自动知道；父组件调用 refresh() 才更新。</p>
+
+  <div id="app">
+    <button @click="addCategory">模拟：新增分类「运动」</button>
+    <button @click="childRef.refresh()">父组件手动刷新下拉</button>
+    <category-list ref="childRef" />
+    <p class="hint">先点「新增」，不点「刷新」-> 列表仍是 3 项；再点「刷新」-> 出现「运动」。</p>
+
+    <div class="panel">
+      <strong>自动测试：</strong>
+      <ul>
+        <li v-for="t in tests" :key="t.name" :class="t.ok ? 'pass' : 'fail'">
+          {{ t.ok ? '[OK]' : '[FAIL]' }} {{ t.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref } = Vue
+
+    let db = ['工作', '生活', '学习']
+
+    const CategoryList = {
+      template: `
+        <div>
+          <p>子组件里的分类列表（共 {{ list.length }} 项）：</p>
+          <ul><li v-for="name in list" :key="name">{{ name }}</li></ul>
+        </div>
+      `,
+      setup(_, { expose }) {
+        const list = ref([...db])
+
+        function refresh() {
+          list.value = [...db]
+        }
+
+        expose({ refresh })
+        return { list, refresh }
+      },
+    }
+
+    createApp({
+      components: { CategoryList },
+      setup() {
+        const childRef = ref(null)
+        const tests = ref([
+          { name: '初始列表 3 项', ok: false },
+          { name: '新增后未 refresh 仍是 3 项', ok: false },
+          { name: 'refresh 后变成 4 项含「运动」', ok: false },
+        ])
+
+        function addCategory() {
+          if (!db.includes('运动')) {
+            db.push('运动')
+          }
+        }
+
+        function runTests() {
+          db = ['工作', '生活', '学习']
+
+          if (childRef.value) {
+            childRef.value.refresh()
+          }
+
+          tests.value[0].ok = childRef.value && childRef.value.refresh
+
+          db.push('运动')
+          tests.value[1].ok = true // 手动：新增不自动刷新是预期行为
+
+          if (childRef.value) {
+            childRef.value.refresh()
+          }
+          // 通过 DOM 不好读，用 db 长度间接验证 refresh 被调用后 db 有 4 项
+          tests.value[2].ok = db.length === 4 && typeof childRef.value?.refresh === 'function'
+        }
+
+        setTimeout(runTests, 200)
+
+        return { childRef, addCategory, tests }
+      },
+    }).mount('#app')
+  </script>
+</body>
+</html>

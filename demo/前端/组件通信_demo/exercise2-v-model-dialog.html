@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>练习2：父子 v-model</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    .dialog { border: 2px solid #409eff; padding: 16px; margin-top: 12px; }
+    .panel { margin-top: 16px; padding: 12px; background: #f5f5f5; border: 1px solid #ddd; }
+    .pass { color: #067d17; }
+    .fail { color: #c00; }
+  </style>
+</head>
+<body>
+  <h2>练习 2：父子 v-model（弹窗开关）</h2>
+  <p>要练会：父组件 v-model 控制子弹窗显示/隐藏。</p>
+
+  <div id="app">
+    <button @click="visible = true">打开弹窗</button>
+    <p>父组件里的状态：visible = {{ visible }}</p>
+    <my-dialog v-model="visible" />
+
+    <div class="panel">
+      <strong>自动测试：</strong>
+      <ul>
+        <li v-for="t in tests" :key="t.name" :class="t.ok ? 'pass' : 'fail'">
+          {{ t.ok ? '[OK]' : '[FAIL]' }} {{ t.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, nextTick } = Vue
+
+    const MyDialog = {
+      props: ['modelValue'],
+      emits: ['update:modelValue'],
+      template: `
+        <div v-if="visible" class="dialog">
+          <p>我是子弹窗</p>
+          <button id="close-btn" @click="visible = false">关闭（子组件改状态）</button>
+        </div>
+      `,
+      setup(props, { emit }) {
+        const visible = computed({
+          get: () => props.modelValue,
+          set: (v) => emit('update:modelValue', v),
+        })
+        return { visible }
+      },
+    }
+
+    createApp({
+      components: { MyDialog },
+      setup() {
+        const visible = ref(false)
+        const tests = ref([
+          { name: '初始弹窗关闭', ok: false },
+          { name: '父组件打开后 visible=true', ok: false },
+          { name: '子组件关闭后 visible=false', ok: false },
+        ])
+
+        async function runTests() {
+          visible.value = false
+          await nextTick()
+          tests.value[0].ok = visible.value === false
+
+          visible.value = true
+          await nextTick()
+          tests.value[1].ok = visible.value === true
+
+          visible.value = false
+          await nextTick()
+          tests.value[2].ok = visible.value === false
+        }
+
+        runTests()
+        return { visible, tests }
+      },
+    }).mount('#app')
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>练习1：v-model 基础</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; }
+    .panel { margin-top: 16px; padding: 12px; background: #f5f5f5; border: 1px solid #ddd; }
+    .pass { color: #067d17; }
+    .fail { color: #c00; }
+  </style>
+</head>
+<body>
+  <h2>练习 1：v-model 基础</h2>
+  <p>要练会：输入框和变量自动同步。</p>
+
+  <div id="app">
+    <input v-model="message" placeholder="在这里输入..." />
+    <p>你输入的是：<strong>{{ message }}</strong></p>
+    <p>字符数：{{ message.length }}</p>
+
+    <div class="panel">
+      <strong>自动测试：</strong>
+      <ul>
+        <li v-for="t in tests" :key="t.name" :class="t.ok ? 'pass' : 'fail'">
+          {{ t.ok ? '[OK]' : '[FAIL]' }} {{ t.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, watch } = Vue
+
+    createApp({
+      setup() {
+        const message = ref('')
+        const tests = ref([
+          { name: '初始 message 为空', ok: false },
+          { name: '输入 hello 后 display 同步', ok: false },
+          { name: '输入 hello 后字符数为 5', ok: false },
+          { name: '清空后字符数为 0', ok: false },
+          { name: '输入中文后字符数为 2', ok: false },
+        ])
+
+        function runTests() {
+          message.value = ''
+          tests.value[0].ok = message.value === ''
+
+          message.value = 'hello'
+          tests.value[1].ok = message.value === 'hello'
+          tests.value[2].ok = message.value.length === 5
+
+          message.value = ''
+          tests.value[3].ok = message.value.length === 0
+
+          message.value = '你好'
+          tests.value[4].ok = message.value.length === 2
+        }
+
+        watch(message, () => {}, { immediate: true })
+        setTimeout(runTests, 100)
+
+        return { message, tests }
+      },
+    }).mount('#app')
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "router-guard-demo",
+  "private": true,
+  "description": "Vue Router 与路由守卫练习 1/3/4",
+  "scripts": {
+    "test": "node lesson1-route-map.js",
+    "lesson1": "node lesson1-route-map.js"
+  }
+}

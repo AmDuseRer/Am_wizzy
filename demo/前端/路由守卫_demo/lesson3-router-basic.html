@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>练习3：Vue Router 基础换页</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; padding: 20px; }
+    nav a { margin-right: 12px; }
+    .page-box { margin-top: 16px; padding: 12px; border: 1px solid #ccc; }
+    .hint { color: #666; font-size: 14px; }
+  </style>
+  <!-- Vue 3 + Vue Router 4（CDN，无需 npm install） -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+</head>
+<body>
+  <h2>练习 3：Vue Router 基础换页</h2>
+  <p class="hint">
+    要练会什么：点链接改地址，router-view 自动换组件。
+    对照项目：web/src/App.vue 里的 router-view。
+  </p>
+
+  <div id="app">
+    <nav>
+      <router-link to="/memos">备忘录</router-link>
+      <router-link to="/passwords">密码本</router-link>
+    </nav>
+    <hr>
+    <div class="page-box">
+      <router-view></router-view>
+    </div>
+    <p class="hint">当前地址：<code>{{ $route.fullPath }}</code></p>
+  </div>
+
+  <script>
+    const { createApp } = Vue
+    const { createRouter, createWebHashHistory } = VueRouter
+
+    const Memos = {
+      template: '<p>[备忘录] 这是备忘录页</p>',
+    }
+    const Passwords = {
+      template: '<p>[密码本] 这是密码本页</p>',
+    }
+
+    const router = createRouter({
+      // 使用 hash 模式（#/memos），双击 html 文件即可运行，无需本地服务器
+      history: createWebHashHistory(),
+      routes: [
+        { path: '/', redirect: '/memos' },
+        { path: '/memos', name: 'Memos', component: Memos },
+        { path: '/passwords', name: 'Passwords', component: Passwords },
+      ],
+    })
+
+    createApp({}).use(router).mount('#app')
+  </script>
+</body>
+</html>

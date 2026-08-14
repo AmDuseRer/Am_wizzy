@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>练习3：v-model 传选中值</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    select { padding: 6px; min-width: 160px; }
+    .panel { margin-top: 16px; padding: 12px; background: #f5f5f5; border: 1px solid #ddd; }
+    .pass { color: #067d17; }
+    .fail { color: #c00; }
+  </style>
+</head>
+<body>
+  <h2>练习 3：v-model 传选中值（分类筛选）</h2>
+  <p>要练会：下拉框选的 id 自动同步到父组件，用于筛选列表。</p>
+
+  <div id="app">
+    <category-picker v-model="categoryId" />
+    <p>父组件当前选中的 id：{{ categoryId ?? '（未选）' }}</p>
+    <p>筛选结果：{{ filteredItems.join('、') || '（无）' }}</p>
+
+    <div class="panel">
+      <strong>自动测试：</strong>
+      <ul>
+        <li v-for="t in tests" :key="t.name" :class="t.ok ? 'pass' : 'fail'">
+          {{ t.ok ? '[OK]' : '[FAIL]' }} {{ t.name }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed } = Vue
+
+    const CategoryPicker = {
+      props: ['modelValue'],
+      emits: ['update:modelValue'],
+      template: `
+        <select
+          :value="modelValue"
+          @change="$emit('update:modelValue', $event.target.value ? Number($event.target.value) : null)"
+        >
+          <option :value="null">请选择</option>
+          <option :value="1">工作</option>
+          <option :value="2">生活</option>
+          <option :value="3">学习</option>
+        </select>
+      `,
+    }
+
+    createApp({
+      components: { CategoryPicker },
+      setup() {
+        const categoryId = ref(null)
+        const allItems = [
+          { id: 1, name: '写报告', category_id: 1 },
+          { id: 2, name: '买菜', category_id: 2 },
+          { id: 3, name: '背单词', category_id: 3 },
+          { id: 4, name: '开会', category_id: 1 },
+        ]
+
+        const filteredItems = computed(() => {
+          if (categoryId.value == null) return []
+          return allItems
+            .filter((i) => i.category_id === categoryId.value)
+            .map((i) => i.name)
+        })
+
+        const tests = ref([
+          { name: '初始 categoryId 为 null', ok: false },
+          { name: '选工作(id=1) 筛选：写报告、开会', ok: false },
+          { name: '选生活(id=2) 筛选：买菜', ok: false },
+          { name: '选学习(id=3) 筛选：背单词', ok: false },
+        ])
+
+        function runTests() {
+          categoryId.value = null
+          tests.value[0].ok = categoryId.value === null
+
+          categoryId.value = 1
+          tests.value[1].ok = JSON.stringify(filteredItems.value) === JSON.stringify(['写报告', '开会'])
+
+          categoryId.value = 2
+          tests.value[2].ok = JSON.stringify(filteredItems.value) === JSON.stringify(['买菜'])
+
+          categoryId.value = 3
+          tests.value[3].ok = JSON.stringify(filteredItems.value) === JSON.stringify(['背单词'])
+        }
+
+        runTests()
+        return { categoryId, filteredItems, tests }
+      },
+    }).mount('#app')
+  </script>
+</body>
+</html>

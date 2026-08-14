@@ -1,0 +1,12 @@
+{
+  "name": "vue-component-communication-demo",
+  "private": true,
+  "description": "Vue 组件通信练习 1~4：v-model 与 defineExpose",
+  "scripts": {
+    "test": "node run_all.js",
+    "exercise1": "node exercise1-v-model-input.js",
+    "exercise2": "node exercise2-v-model-dialog.js",
+    "exercise3": "node exercise3-v-model-select.js",
+    "exercise4": "node exercise4-define-expose.js"
+  }
+}
