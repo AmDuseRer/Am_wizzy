@@ -31,7 +31,6 @@
           </el-button>
         </el-form-item>
       </el-form>
-      <p class="hint">预置账号: admin / Admin@123 或 user / User@123</p>
     </el-card>
   </div>
 </template>
@@ -110,11 +109,5 @@ async function handleLogin() {
   text-align: center;
   color: #909399;
   margin-bottom: 0;
-}
-.hint {
-  text-align: center;
-  font-size: 12px;
-  color: #909399;
-  margin-top: 16px;
 }
 </style>
